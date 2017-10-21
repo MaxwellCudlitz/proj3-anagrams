@@ -84,31 +84,50 @@
     <label for="attempt">Word:</label>
     <input id="attempt" name="attempt" type="text" width="15"
       autocomplete="off"  autofocus />
-    <input type="submit" name="try" />
+    <p id="message_feed">Start Typing!</p>
+    <!--<input type="submit" name="try" />-->
   </form>
 </div></div>
 
 <br />
 
-{% if session.matches|length is not equalto 0  %}
-<h2>You found </h2>
-<p id="results">
-  {% for match in session.matches %}
-  {{ match }} 
-  {% endfor %}
-</p>
-{% endif %}
+<div id="results">
+  <p> Found Words: </p>
+  <p id = "found_words"></p>
+</div>
 
 
-{% with messages = get_flashed_messages() %}
-  {% if messages %}
-    <!-- Mismatch, already found, etc. "flashed" from Python -->
-    {% for message in messages %}
-      <p class="message">{{ message }}</p>
-    {% endfor %}
-  {% endif %}
-{% endwith %}
+<script>
+  
+// Suppress normal form submission
+$("#entry").submit( function(event) {
+    event.preventDefault();
+  });
 
+$("#attempt").keyup(function(event) {
+    var txt = $("#attempt").val();  // Current content of the input field
+    var keycode = event.which;      // They key that just went up
+    var letter = String.fromCharCode(keycode);
+
+    if (! "ABCDEFGHIJKLMNOPQRSTUVWXYZ".includes(letter)) { return }
+
+    $.getJSON( "/_ajax_check", { attempt : txt }, 
+        function(data) {
+            msg   = data.result.msg;
+            var words = data.result.words;
+            console.log("msg: " + msg);
+            $("#message_feed").text(msg);
+
+            var word_paragraph = "";
+            for(var i = 0, len = words.length; i < len; i++ ){
+              word_paragraph = word_paragraph.concat(words[i].concat("\n"));
+            }
+            console.log(word_paragraph);
+            $("#found_words").text(word_paragraph);
+          }
+      );
+    });
+</script>
 
 
  </div> <!-- container -->

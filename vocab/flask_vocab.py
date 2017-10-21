@@ -132,6 +132,60 @@ def example():
     rslt = {"key": "value"}
     return flask.jsonify(result=rslt)
 
+@app.route("/_ajax_check")
+def ajax_check():
+    """
+    User has submitted the form with a word ('attempt')
+    that should be formed from the jumble and on the
+    vocabulary list.  We respond depending on whether
+    the word is on the vocab list (therefore correctly spelled),
+    made only from the jumble letters, and not a word they
+    already found.
+    """
+
+    # The data we need, from form and from cookie
+    text = flask.request.args.get("attempt", type=str)
+    app.logger.debug("Got json request with string {}".format(text))
+
+    jumble = flask.session["jumble"]
+    matches = flask.session.get("matches", [])  # Default to empty list
+
+    # early exit if length is not long enough
+    #if(len(text) != len(jumble)):
+    #    return flask.jsonify(result = {"msg" : "wrong_len"})
+
+
+    # Is it good?
+    in_jumble = LetterBag(jumble).contains(text)
+    matched = WORDS.has(text)
+
+    msg_code = ""
+    res = {}
+
+    # Respond appropriately
+    if matched and in_jumble and not (text in matches):
+        # Cool, they found a new word
+        matches.append(text)
+        flask.session["matches"] = matches
+        res["msg"] = "Nice job!"
+        res["code"] = "new"
+    elif text in matches:
+        res["msg"] = "You already found {}".format(text)
+        res["code"] = "not_new"
+    elif not matched:
+        res["msg"] = "{} isn't in the list of words".format(text)
+        res["code"] = "not_found"
+    elif not in_jumble:
+        res["msg"] = '"{}" can\'t be made from the letters {}'.format(text, jumble)
+        res["code"] = "not_jumble"
+    else:
+        res["msg"] = "lol who it"
+        app.logger.debug("This case shouldn't happen!")
+        assert False  # Raises AssertionError
+        res["code"] = "err"
+
+    res["words"] = matches
+    return flask.jsonify(result = res)
 
 #################
 # Functions used within the templates
